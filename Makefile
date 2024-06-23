@@ -8,6 +8,9 @@ build: down docker
 	docker exec php /bin/sh -c "composer install && npm install && chmod -R 777 storage && php artisan key:generate"
 	make jwt
 
+cache:
+	docker exec php /bin/sh -c "php artisan optimize"
+
 code-format-check:
 	docker exec php /bin/sh -c "npm run format:check"
 

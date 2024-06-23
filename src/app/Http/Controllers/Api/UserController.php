@@ -8,6 +8,8 @@ use App\Http\Requests\UpdateUserRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class UserController extends Controller
 {
@@ -28,7 +30,6 @@ class UserController extends Controller
     public function deactivateUser(): JsonResponse
     {
         $user = $this->guard()->user();
-
         $user->update([
             'is_active' => false
         ]);
@@ -70,10 +71,11 @@ class UserController extends Controller
         $user->update([
             'password' => Hash::make($updatePasswordRequest->confirmPassword),
         ]);
+        JWTAuth::invalidate(JWTAuth::getToken());
 
         return response()->json([
             'status' => Response::HTTP_ACCEPTED,
-            'message' => "Password updated successfully",
+            'message' => "Password updated successfully. Please login again to continue",
             'user' => $user
         ], Response::HTTP_ACCEPTED);
     }
@@ -85,9 +87,20 @@ class UserController extends Controller
      */
     public function logout(): JsonResponse
     {
-        auth()->logout();
+        try {
+            // Invalidate the token
+            JWTAuth::invalidate(JWTAuth::getToken());
 
-        return response()->json(['message' => 'Logged out successfully']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully logged out'
+            ]);
+        } catch (JWTException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to logout, please try again'
+            ], 500);
+        }
     }
 
     /**
